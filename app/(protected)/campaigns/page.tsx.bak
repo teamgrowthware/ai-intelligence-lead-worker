@@ -1,0 +1,47 @@
+import { CampaignService } from "@/services/CampaignService";
+import { auth } from "@/auth";
+import { createCampaignAction } from "./actions";
+
+export default async function CampaignsPage() {
+  const session = await auth();
+  const workspaceId = (session?.user as unknown as { workspaceId: string })?.workspaceId;
+  if (!workspaceId) return <div>Unauthorized</div>;
+  
+  const campaigns = await CampaignService.getCampaigns(workspaceId);
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Campaigns</h1>
+      
+      <form action={async (formData) => {
+        "use server"
+        await createCampaignAction(formData.get("name") as string, formData.get("description") as string);
+      }} className="mb-8 border p-4 rounded flex gap-4 items-end">
+        <div>
+          <label className="block text-sm font-medium">Campaign Name</label>
+          <input type="text" name="name" className="border rounded p-2 w-64" required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Description</label>
+          <input type="text" name="description" className="border rounded p-2 w-64" required />
+        </div>
+        <button type="submit" className="bg-black text-white px-4 py-2 rounded">Create Campaign</button>
+      </form>
+
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b"><th className="text-left p-2">Name</th><th className="text-left p-2">Status</th><th className="text-left p-2">Created</th></tr>
+        </thead>
+        <tbody>
+          {campaigns.map(c => (
+            <tr key={c.id} className="border-b">
+              <td className="p-2">{c.name}</td>
+              <td className="p-2">{c.status}</td>
+              <td className="p-2">{new Date(c.createdAt).toLocaleDateString()}</td>
+            </tr>
+          ))}
+          {campaigns.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-gray-500">No campaigns found.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
